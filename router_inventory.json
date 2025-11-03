@@ -1,0 +1,28 @@
+{
+  "routers": [
+    {
+      "host": "192.168.1.1",
+      "username": "admin",
+      "password": "your_password_here",
+      "platform": "cisco_iosxe",
+      "port": 22,
+      "auth_strict_key": false
+    },
+    {
+      "host": "192.168.1.2",
+      "username": "admin",
+      "password": "your_password_here",
+      "platform": "cisco_nxos",
+      "port": 22,
+      "auth_strict_key": false
+    },
+    {
+      "host": "192.168.1.3",
+      "username": "admin",
+      "password": "your_password_here",
+      "platform": "arista_eos",
+      "port": 22,
+      "auth_strict_key": false
+    }
+  ]
+}
