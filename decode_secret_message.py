@@ -32,47 +32,56 @@ def decode_secret_message(url):
     # Parse the HTML content
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    # Extract the text content from the document
-    text_content = soup.get_text()
-
-    # Parse the data to extract character and coordinates
-    # Expected format: character x y (e.g., "█ 0 0" or "▀ 1 0")
     coordinates = []
 
-    # Method 1: Split by lines and parse each line
-    lines = text_content.split('\n')
+    # Method 1: Try to parse HTML table directly
+    # Google Docs tables have structure: <table><tbody><tr><td>value</td>...</tr></tbody></table>
+    tables = soup.find_all('table')
 
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
+    for table in tables:
+        rows = table.find_all('tr')
+        for row in rows:
+            cells = row.find_all('td')
+            if len(cells) >= 3:
+                try:
+                    # Table format: x-coordinate, Character, y-coordinate
+                    x = int(cells[0].get_text().strip())
+                    char = cells[1].get_text().strip()
+                    y = int(cells[2].get_text().strip())
+                    if char:  # Make sure we have a character
+                        coordinates.append((char, x, y))
+                except (ValueError, IndexError):
+                    continue
 
-        # Try to match pattern: character x y
-        # The character can be any Unicode character, followed by x and y coordinates
-        parts = line.split()
-
-        if len(parts) >= 3:
-            # Last two parts should be numbers (x, y coordinates)
-            try:
-                y = int(parts[-1])
-                x = int(parts[-2])
-                # Everything before the last two parts is the character
-                char = ' '.join(parts[:-2])
-                if char:  # Make sure we have a character
-                    coordinates.append((char, x, y))
-            except ValueError:
-                # If conversion fails, this line doesn't match our pattern
-                continue
-
-    # Method 2: If no coordinates found, try regex pattern
+    # Method 2: If table parsing didn't work, try regex on text content
+    # Pattern: number + character + number (concatenated like "27█0")
     if not coordinates:
-        # Try matching: single_character space number space number
-        pattern = r'(\S)\s+(\d+)\s+(\d+)'
+        text_content = soup.get_text()
+        pattern = r'(\d+)([█░▀▄▌▐▒▓■])(\d+)'
         for match in re.finditer(pattern, text_content):
-            char = match.group(1)
-            x = int(match.group(2))
+            x = int(match.group(1))
+            char = match.group(2)
             y = int(match.group(3))
             coordinates.append((char, x, y))
+
+    # Method 3: Try space-separated format as final fallback
+    if not coordinates:
+        text_content = soup.get_text()
+        lines = text_content.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split()
+            if len(parts) >= 3:
+                try:
+                    y = int(parts[-1])
+                    x = int(parts[-2])
+                    char = ' '.join(parts[:-2])
+                    if char:
+                        coordinates.append((char, x, y))
+                except ValueError:
+                    continue
 
     if not coordinates:
         print("Error: Could not parse any coordinates from the document")
@@ -99,7 +108,7 @@ def decode_secret_message(url):
 
 if __name__ == "__main__":
     # Test with the provided URL
-    test_url = "https://docs.google.com/document/d/e/2PACX-1vRPzbNQcx5UriHSbZ-9vmsTow_R6RRe7eyAU60xIF9Dlz-vaHiHNO2TKgDi7jy4ZpTpNqM7EvEcfr_p/pub"
+    test_url = "https://docs.google.com/document/d/e/2PACX-1vTMOmshQe8YvaRXi6gEPKKlsC6UpFJSMAk4mQjLm_u1gmHdVVTaeh7nBNFBRlui0sTZ-snGwZM4DBCT/pub"
 
     print("Decoding secret message from:", test_url)
     print("\nSecret message:")
